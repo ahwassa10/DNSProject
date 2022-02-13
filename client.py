@@ -21,7 +21,22 @@ def createSocket():
         print(error)
         sys.exit("Error: Unable to establish connection at {} : {}".format(client_hostname, client_port))
         
-    
+def readLoop():
+    global client_socket
+    try:
+        inputFile = open("PROJ2-HNS.txt", "r")
+        
+        for line in inputFile:
+            client_socket.send(line.encode("utf-8"))
+            print("Debug: Sending {} to socket".format(line)) 
+            
+        
+    except OSError as error:
+        print(error)
+        sys.exit("Error: Unable to process the input file")
+        
+
+
     
 
 def main():
@@ -40,11 +55,12 @@ def main():
     createSocket()
     print("Debug: Created connection at {} : {}".format(client_hostname, client_port))
     
+    readLoop()
     
     
-    
-    client_socket.shutdown()
+    client_socket.shutdown(socket.SHUT_RDWR)
     client_socket.close()
+    print("Debug: Successfully shutdown and closed the socket")
 
 if (__name__ == "__main__"):
     main()
