@@ -22,6 +22,11 @@ def createSocket():
         print(error)
         sys.exit("Error: Unable to establish connection at {} : {}".format(client_hostname, client_port))
 
+def cleanupSocket():
+    if client_hostname != None:
+        client_socket.shutdown(socket.SHUT_RDWR)
+        client_socket.close()
+        
         
 def readLoop():
     global client_socket
@@ -41,10 +46,16 @@ def readLoop():
             outputFile.write(data + '\n')
             
     except socket.timeout:
+        cleanupSocket()
+        inputFile.close()
+        outputFile.close()
         sys.exit("Error: Connection to server timed out")
     
     except OSError as error:
         print(error)
+        cleanupSocket()
+        inputFile.close()
+        outputFile.close()
         sys.exit("Error: Unable to process the input file")
 
 
@@ -67,9 +78,7 @@ def main():
     readLoop()
     print("Debug: Successfully read through the file")
     
-    
-    client_socket.shutdown(socket.SHUT_RDWR)
-    client_socket.close()
+    cleanupSocket()
     print("Debug: Successfully shutdown and closed the socket")
 
 if (__name__ == "__main__"):
