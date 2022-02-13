@@ -32,7 +32,7 @@ def Main():
         sys.exit(0)
     
     try:
-        ts_server.bind((ADDRESS, PORT))
+        ts_server.bind((socket.gethostbyname(socket.gethostname()), PORT))
     except OSError as e:
         print("Could not bind socket")
         sys.exit(0)
@@ -44,10 +44,9 @@ def Main():
 
 
     # Probably need to add multi threading
-    client, address = ts_server.accept()
     while True:
-
-
+        client, address = ts_server.accept()
+        
         data_recieved = (client.recv(200)).decode("utf-8")
         resolver_output = resolve_host(data_recieved)
         if resolver_output is None:
