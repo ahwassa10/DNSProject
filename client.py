@@ -11,6 +11,7 @@ def parsePort(port):
     else:
         sys.exit("Error: Invalid port number")
 
+
 def createSocket():
     global client_socket
     try:
@@ -20,24 +21,32 @@ def createSocket():
     except OSError as error:
         print(error)
         sys.exit("Error: Unable to establish connection at {} : {}".format(client_hostname, client_port))
+
         
 def readLoop():
     global client_socket
+    client_socket.settimeout(3)
     try:
-        inputFile = open("PROJ2-HNS.txt", "r")
+        inputFile  = open("PROJ2-HNS.txt", "r")
+        outputFile = open("RESOLVED.txt", "w")
         
         for line in inputFile:
-            client_socket.send(line.encode("utf-8"))
-            print("Debug: Sending {} to socket".format(line)) 
+            # Get rid of newline and leading whitespace.
+            line = line.strip()
             
-        
+            client_socket.send(line.encode("utf-8"))
+            print("Debug: Sending to socket: {}".format(line)) 
+            data = client_socket.recv(200).decode("utf-8")
+            print("Debug: Recv  from socket: {}".format(data))
+            outputFile.write(data + '\n')
+            
+    except socket.timeout:
+        sys.exit("Error: Connection to server timed out")
+    
     except OSError as error:
         print(error)
         sys.exit("Error: Unable to process the input file")
-        
 
-
-    
 
 def main():
     arguments = sys.argv
@@ -56,6 +65,7 @@ def main():
     print("Debug: Created connection at {} : {}".format(client_hostname, client_port))
     
     readLoop()
+    print("Debug: Successfully read through the file")
     
     
     client_socket.shutdown(socket.SHUT_RDWR)
