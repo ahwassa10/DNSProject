@@ -1,20 +1,26 @@
 import socket
 import sys
+import threading
+import time
+
+RS_TIMEOUT = 10
+CLIENT_TIMEOUT = 5
+TS_TIMEOUT     = 5
 
 rs_port     = 0
-rs_socket   = None
+rs_socket   = None     # Timeout after RS_TIMEOUT
 
 client_port     = 0
 client_hostname = ""
-client_socket   = None
+client_socket   = None # Timeout after CLIENT_TIMEOUT
 
 ts1_port     = 0
 ts1_hostname = ""
-ts1_socket   = None
+ts1_socket   = None    # Timeout after TS_TIMEOUT
 
 ts2_port     = 0
 ts2_hostname = ""
-ts2_socket   = None
+ts2_socket   = None    # Timeout after TS_TIMEOUT
 
 def parsePort(port):
     if port.isdigit() and int(port) > 0 and int(port) < 65535:
@@ -52,8 +58,13 @@ def cleanupSockets():
         ts2_socket.shutdown(socket.SHUT_RDWR)
         ts2_socket.close()
     
+    # DO NOT call shutdown on a listening socket
     if rs_socket != None:
         rs_socket.close()
+    
+    if client_socket != None:
+        client_socket.shutdown(socket.SHUT_RDWR)
+        client_socket.close()
 
 
 def openTSConnections():
@@ -61,6 +72,7 @@ def openTSConnections():
     try:
         ts1_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         ts1_socket.connect((ts1_hostname, ts1_port))
+        ts1_socket.settimeout(TS_TIMEOUT)
     
     except OSError as error:
         print(error)
@@ -70,6 +82,7 @@ def openTSConnections():
     try:
         ts2_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         ts2_socket.connect((ts2_hostname, ts2_port))
+        ts1_socket.settimeout(TS_TIMEOUT)
     
     except OSError as error:
         print(error)
@@ -89,6 +102,69 @@ def openListener():
         cleanupSockets()
         sys.exit("Error: Failed to create listening socket")
 
+def waitClient():
+    global client_port
+    global client_hostname
+    global client_socket
+    
+    try:
+        # timeout must happen on rs_socket, not client_socket
+        rs_socket.settimeout(RS_TIMEOUT)
+        client_socket, address = rs_socket.accept()
+        client_hostname = address[0]
+        client_port     = address[1]
+    
+    except socket.timeout:
+        cleanupSockets()
+        sys.exit("Error: Server timed out waiting for client")
+    
+    except OSError as error:
+        print(error)
+        cleanupSockets()
+        sys.exit("Error: Failure to accept incoming connection")
+
+def sendTS(data, soc):
+    
+
+def readLoop():
+    client_socket.settimeout(CLIENT_TIMEOUT)
+    
+    while True:
+        try:
+            data = client_socket.recv(200).decode("utf-8")
+        
+        except socket.timeout:
+            break
+        
+        except OSError as error:
+            print(error)
+            cleanupSockets()
+            sys.exit("Error: Failed to read from client")
+        
+        data = data.strip()
+        if len(data) == 0:
+            break # Client ended the connection
+        print("Debug: Received from client: {}".format(data))
+        
+        try:
+            
+            t1 = threading.Thread(target=sendTS, name="ts1", args=(data, ts1_socket))
+            t2 = threading.Thread(target=sendTS, name="ts2", args=(data, ts2_socket))
+            t1.start()
+            t2.start()
+            
+            ts1_data = ""
+            ts2_data = ""
+            
+            print("Debug: Received from ts1: {}".format(ts1_data))
+            print("Debug: Received from ts2: {}".format(ts2_data))
+        
+        except OSError as error:
+            print(error)
+            cleanupSockets()
+            sys.exit("Error: Failed to communicated with ts server")
+            
+
 def main():
     parseArgs()
     print("Debug: Succesfully parsed all command line arguments")
@@ -103,6 +179,12 @@ def main():
     ip   = socket.gethostbyname(host)
     print("Debug: Succesfully opened a listening socket at " \
           "{} : {} {}".format(host, rs_port, ip))
+    
+    waitClient()
+    print("Debug: Succesfully accepted a connection from {} : {}".format(client_hostname, client_port))
+    
+    readLoop()
+    print("Debug: Succesfully served client")
     
     cleanupSockets()
     print("Debug: Succesfully cleaned up connections to ts1 and ts2")

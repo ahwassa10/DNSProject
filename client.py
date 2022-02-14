@@ -30,7 +30,7 @@ def cleanupSocket():
         
 def readLoop():
     global client_socket
-    client_socket.settimeout(3)
+    client_socket.settimeout(10)
     try:
         inputFile  = open("PROJ2-HNS.txt", "r")
         outputFile = open("RESOLVED.txt", "w")
