@@ -27,23 +27,14 @@ def Main():
     ts_server = None
     try:
         ts_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ts_server.bind(('', PORT))
+        ts_server.listen(3)
+        
     except OSError as e:
         print(e)
-        sys.exit("Could not create socket")
-    
-    try: # we need to bind to localhost:PORT, '' is localhost.
-        ts_server.bind(('', PORT)) 
-    except OSError as e:
-        print(e)
-        ts_server.close()
-        sys.exit("Could not bind socket")
-
-    try:
-        ts_server.listen(1)
-    except OSError as e:
-        print(e)
-        print("Count not listen to socket")
-
+        if (ts_server != None):
+            ts_server.close()
+        sys.exit("Could not create listening socket")
 
     # Probably need to add multi threading
     while True:
