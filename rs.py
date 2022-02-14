@@ -3,9 +3,9 @@ import sys
 import threading
 import time
 
-RS_TIMEOUT = 10
-CLIENT_TIMEOUT = 5
-TS_TIMEOUT     = 5
+RS_TIMEOUT = 10     # How long to wait before listening socket times out 
+CLIENT_TIMEOUT = 5  # How long to wait before conn with client times out
+TS_TIMEOUT     = 5  # How long to wait before conn with ts servers timers out 
 
 rs_port     = 0
 rs_socket   = None     # Timeout after RS_TIMEOUT
@@ -66,6 +66,20 @@ def cleanupSockets():
         client_socket.shutdown(socket.SHUT_RDWR)
         client_socket.close()
 
+def queryTS1():
+    global ts1_socket
+    ts1_socket = None
+    
+    try:
+        ts1_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ts1_socket.connect((ts1_hostname, ts1_port))
+        ts1_socket.settimeout(TS_TIMEOUT)
+    
+    except OSError as error:
+        print(error)
+        sys.exit("Error: Unable to connect to ts1 at {}:{}".format(ts1_hostname, ts1_port))
+    
+
 
 def openTSConnections():
     global ts1_socket
@@ -108,23 +122,20 @@ def waitClient():
     global client_socket
     
     try:
-        # timeout must happen on rs_socket, not client_socket
         rs_socket.settimeout(RS_TIMEOUT)
         client_socket, address = rs_socket.accept()
         client_hostname = address[0]
         client_port     = address[1]
     
-    except socket.timeout:
+    except socket.timeout
         cleanupSockets()
-        sys.exit("Error: Server timed out waiting for client")
+        sys.exit("Error: Listener socket timed out waiting for client")
     
     except OSError as error:
         print(error)
         cleanupSockets()
         sys.exit("Error: Failure to accept incoming connection")
 
-def sendTS(data, soc):
-    
 
 def readLoop():
     client_socket.settimeout(CLIENT_TIMEOUT)
@@ -134,7 +145,8 @@ def readLoop():
             data = client_socket.recv(200).decode("utf-8")
         
         except socket.timeout:
-            break
+            print("Error: Connection to client timed out")
+            return
         
         except OSError as error:
             print(error)
@@ -143,7 +155,8 @@ def readLoop():
         
         data = data.strip()
         if len(data) == 0:
-            break # Client ended the connection
+            return # Client ended the connection
+        
         print("Debug: Received from client: {}".format(data))
         
         try:
@@ -169,22 +182,30 @@ def main():
     parseArgs()
     print("Debug: Succesfully parsed all command line arguments")
     
-    openTSConnections()
-    print("Debug: Succesfully opened connections to ts1 and ts2")
-    print("Debug: ts1 at {} : {}".format(ts1_hostname, ts1_port))
-    print("Debug: ts2 at {} : {}".format(ts2_hostname, ts2_port))
-    
     openListener()
     host = socket.gethostname()
     ip   = socket.gethostbyname(host)
     print("Debug: Succesfully opened a listening socket at " \
           "{} : {} {}".format(host, rs_port, ip))
     
-    waitClient()
-    print("Debug: Succesfully accepted a connection from {} : {}".format(client_hostname, client_port))
+    global client_hostname
+    global client_port
+    global client_socket
     
-    readLoop()
-    print("Debug: Succesfully served client")
+    while True:
+        # Cleanup resources from previous client connection
+        client_hostname = ""
+        client_port = 0
+        client_socket = None
+        
+        waitClient()
+        print("Debug: Succesfully establish connection with: " \
+              "{} : {}".format(client_hostname, client_port))
+        
+        readLoop()
+        print("Debug: Interaction with client finished")
+    
+    
     
     cleanupSockets()
     print("Debug: Succesfully cleaned up connections to ts1 and ts2")
