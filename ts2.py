@@ -62,4 +62,4 @@ def Main():
     ts_server.close()
 
 Main()
-print("ENDING CONNECTION")
+print("ENDING PROGRAM")
