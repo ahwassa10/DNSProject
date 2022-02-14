@@ -1,5 +1,5 @@
-www.princeton.edu - TIMED OUT
+www.princeton.edu 128.1.1.4 A IN
 rutgers.edu 172.34.4.6 A IN
 nothinghere.com - TIMED OUT
-google.com - TIMED OUT
+GOOGLE.com 46.1.3.7 A IN
 www.google.com - TIMED OUT
