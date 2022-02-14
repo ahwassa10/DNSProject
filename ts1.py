@@ -28,18 +28,20 @@ def Main():
     try:
         ts_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     except OSError as e:
-        print("Could not create socket")
-        sys.exit(0)
+        print(e)
+        sys.exit("Could not create socket")
     
-    try:
-        ts_server.bind((socket.gethostbyname(socket.gethostname()), PORT))
+    try: # we need to bind to localhost:PORT, '' is localhost.
+        ts_server.bind(('', PORT)) 
     except OSError as e:
-        print("Could not bind socket")
-        sys.exit(0)
+        print(e)
+        ts_server.close()
+        sys.exit("Could not bind socket")
 
     try:
         ts_server.listen(1)
     except OSError as e:
+        print(e)
         print("Count not listen to socket")
 
 
