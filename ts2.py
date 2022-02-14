@@ -38,7 +38,7 @@ def Main():
         sys.exit(0)
 
     try:
-        ts_server.listen(5)
+        ts_server.listen(1)
     except OSError as e:
         print("Count not listen to socket")
 
@@ -57,6 +57,7 @@ def Main():
         except socket.error as e:
             client.close()
             break
+        client.close()
             
     ts_server.close()
 
