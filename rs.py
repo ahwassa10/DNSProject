@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 
-RS_TIMEOUT = 10     # How long to wait before listening socket times out 
+RS_TIMEOUT = 60     # How long to wait before listening socket times out 
 CLIENT_TIMEOUT = 5  # How long to wait before conn with client times out
 TS_TIMEOUT     = 5  # How long to wait before conn with ts servers timers out 
 
@@ -70,13 +70,14 @@ def queryTS1(data):
             ts1_socket.close()
         print("    Error: Unable to connect to ts1 at {}:{}".format(ts1_hostname, ts1_port))
         return
+    print("    Debug: Succesfully connected to ts1 at {}:{}".format(ts1_hostname, ts1_port))
     
     try:
         ts1_socket.send(data.encode("utf-8"))
-        response = ts1_socket.recv(512).decode("utf-8")
+        ts1_response = ts1_socket.recv(512).decode("utf-8")
     
     except socket.timeout:
-        response = ""
+        ts1_response = ""
     
     except OSError as error:
         print(error)
@@ -101,13 +102,14 @@ def queryTS2(data):
             ts2_socket.close()
         print("    Error: Unable to connect to ts2 at {}:{}".format(ts2_hostname, ts2_port))
         return
+    print("    Debug: Succesfully connected to ts2 at {}:{}".format(ts2_hostname, ts2_port)) 
     
     try:
         ts2_socket.send(data.encode("utf-8"))
-        response = ts2_socket.recv(512).decode("utf-8")
+        ts2_response = ts2_socket.recv(512).decode("utf-8")
     
     except socket.timeout:
-        response = ""
+        ts2_response = ""
     
     except OSError as error:
         print(error)
@@ -186,7 +188,7 @@ def readLoop():
             print("    Debug: Received from ts1: {}".format(ts1_response))
             print("    Debug: Received from ts2: {}".format(ts2_response))
         
-        except OSError as error:
+        except OSError as error: # multithreading error probably very bad
             print(error)
             cleanupSockets()
             sys.exit("Error: System Error")
@@ -197,10 +199,10 @@ def readLoop():
                 print("    Debug: Sent to client: {}".format(message))
                 client_socket.send(message.encode("utf-8"))
                 
-            elif ts1_response != None and ts2_response != None:
+            elif ts1_response != "" and ts2_response != "":
                 print("    ERROR: BOTH TS RESPONDED")
             
-            elif ts1_response != None:
+            elif ts1_response != "":
                 client_socket.send(ts1_response.encode("utf-8"))
             
             else:
@@ -215,8 +217,9 @@ def readLoop():
             print("    Error: Failed to send reponse to client")
             break
     
-    client_socket.shutdown(socket.SHUT_RDWR)
-    client_socket.close()
+    if (client_socket != None):
+        client_socket.shutdown(socket.SHUT_RDWR)
+        client_socket.close()
         
 
 def main():
