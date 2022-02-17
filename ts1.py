@@ -1,12 +1,14 @@
+import signal
 import socket
 import sys
+import time
 PORT = int(sys.argv[1])
 ADDRESS = ""
 
-TS_TIMEOUT = 60     # time to wait for connection before TS timesout
-CLIENT_TIMEOUT = 10 # time to wait for RS to send something to TS
+TS_TIMEOUT = None    # time to wait for connection before TS timesout
+CLIENT_TIMEOUT = 60  # time to wait for RS to send something to TS
 rr_map = dict()
-
+ts_server = None
 
 CLIENT_TIMEOUT_SINKHOLE = True
 
@@ -46,9 +48,15 @@ def resolve_host(data_recieved):
                 return new_string
     return None
 
+def prog_exit(sig, frame):
+    if (ts_server != None):
+        ts_server.close();
+    sys.exit("Debug: ctrl-C exiting program")
+
 def Main():
+    signal.signal(signal.SIGINT, prog_exit)       # For Linux
+    global ts_server
     
-    ts_server = None
     try:
         ts_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         ts_server.bind(('', PORT))
@@ -90,6 +98,7 @@ def Main():
                 client.send(message.encode("utf-8"))
             else:
                 print("    Debug: {} not in rr_map".format(data_recieved))
+                time.sleep(6)
                 
         except socket.timeout:
             print("    Debug: Connection with RS timed out")

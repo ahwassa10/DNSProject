@@ -1,11 +1,12 @@
+import signal
 import socket
 import sys
 import threading
 import time
 
-RS_TIMEOUT = 60     # How long to wait before listening socket times out 
-CLIENT_TIMEOUT = 5  # How long to wait before conn with client times out
-TS_TIMEOUT     = 5  # How long to wait before conn with ts servers timers out 
+RS_TIMEOUT = None   # How long to wait before listening socket times out 
+CLIENT_TIMEOUT = 60 # How long to wait before conn with client times out
+TS_TIMEOUT     = 5  # How long to wait before conn with ts servers times out 
 
 rs_port     = 0
 rs_socket   = None     # Timeout after RS_TIMEOUT
@@ -220,9 +221,15 @@ def readLoop():
     if (client_socket != None):
         client_socket.shutdown(socket.SHUT_RDWR)
         client_socket.close()
-        
+
+def prog_exit(sig, frame):
+    if (rs_socket != None):
+        rs_socket.close();
+    sys.exit("Debug: ctrl-C exiting program")
+    
 
 def main():
+    signal.signal(signal.SIGINT, prog_exit)
     parseArgs()
     print("Debug: Succesfully parsed all command line arguments")
     
